@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   User,
   MapPin,
@@ -19,8 +19,10 @@ import { useNavigate } from "react-router";
 
 const CompleteProfile = () => {
   const user = useSelector((store) => store.user);
+  const [file, setFile] = useState(null);
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -60,8 +62,20 @@ const CompleteProfile = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    const form = new FormData();
+    form.append("name", formData.name);
+    form.append("gender", formData.gender);
+    form.append("age", formData.age);
+    form.append("bio", formData.bio);
+    form.append("location", formData.location);
+    form.append("techStack", formData.techStack);
+    form.append("github", formData.github);
+    form.append("linkedin", formData.linkedin);
+    form.append("portfolio", formData.portfolio);
+    if (file) form.append("profile", file);
     try {
-      const res = await axios.patch(`${API_URL}/profile/edit`, formData, {
+      const res = await axios.patch(`${API_URL}/profile/edit`, form, {
         withCredentials: true,
       });
       toast.success(res.data.message);
@@ -69,6 +83,8 @@ const CompleteProfile = () => {
       navigate("/home");
     } catch (error) {
       toast.error(error.response?.data?.message || "Something went wrong");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -118,10 +134,18 @@ const CompleteProfile = () => {
                 onChange={handleChange}
                 className="w-full bg-transparent text-gray-800 outline-none text-base sm:text-lg cursor-pointer"
               >
-                <option value="" className="bg-white text-gray-700">Select Gender</option>
-                <option value="Male" className="bg-white text-gray-700">👨 Male</option>
-                <option value="Female" className="bg-white text-gray-700">👩 Female</option>
-                <option value="Other" className="bg-white text-gray-700">🏳️‍🌈 Other</option>
+                <option value="" className="bg-white text-gray-700">
+                  Select Gender
+                </option>
+                <option value="Male" className="bg-white text-gray-700">
+                  👨 Male
+                </option>
+                <option value="Female" className="bg-white text-gray-700">
+                  👩 Female
+                </option>
+                <option value="Other" className="bg-white text-gray-700">
+                  🏳️‍🌈 Other
+                </option>
               </select>
             </InputWrapper>
 
@@ -160,15 +184,35 @@ const CompleteProfile = () => {
               />
             </InputWrapper>
 
-            <InputWrapper Icon={Camera} label="Profile Picture URL">
+            <InputWrapper Icon={Camera} label="Profile Picture">
               <input
-                type="url"
-                name="profileImage"
-                placeholder="https://example.com/photo.jpg"
-                value={formData.profileImage}
-                onChange={handleChange}
-                className="w-full bg-transparent text-gray-800 placeholder-gray-400 outline-none text-base sm:text-lg"
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const selectedFile = e.target.files[0];
+                  if (selectedFile) {
+                    setFile(selectedFile);
+                    const imageUrl = URL.createObjectURL(selectedFile);
+                    setFormData((prev) => ({
+                      ...prev,
+                      profileImage: imageUrl,
+                    }));
+                  }
+                }}
+                className="w-full text-sm text-gray-800"
               />
+              {file && (
+                <div className="mt-4">
+                  <p className="text-sm text-gray-600 mb-2">
+                    Selected Image Preview:
+                  </p>
+                  <img
+                    src={formData.profileImage}
+                    alt="Preview"
+                    className="w-32 h-32 object-cover rounded-full border border-gray-300 shadow-sm"
+                  />
+                </div>
+              )}
             </InputWrapper>
           </div>
 
@@ -246,12 +290,13 @@ const CompleteProfile = () => {
         {/* Submit */}
         <div className="pt-4 border-t border-gray-200">
           <button
+            disabled={loading}
             type="submit"
             className="group w-full py-3 sm:py-4 bg-black text-white rounded-xl font-semibold text-lg sm:text-xl shadow-md hover:scale-[1.02] transition-transform duration-300 hover:bg-gray-900"
           >
             <span className="flex justify-center items-center">
               <Save className="w-5 h-5 mr-2 group-hover:rotate-12 transition-transform duration-300" />
-              Save Profile
+              {loading ? "Saving..." : "Save"}
             </span>
           </button>
         </div>

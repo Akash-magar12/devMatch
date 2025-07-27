@@ -32,30 +32,6 @@ userRouter.get("/request/recieved", authMiddleware, async (req, res) => {
   }
 });
 
-// userRouter.get("/connection", authMiddleware, async (req, res) => {
-//   try {
-//     const loggedUser = req.user;
-//     const connectionReq = await connectionReqModel
-//       .find({
-//         $or: [
-//           { recieverId: loggedUser._id, status: "accepted" },
-//           { senderId: loggedUser._id, status: "accepted" },
-//         ],
-//       })
-//       .populate("recieverId", USER_DATA)
-//       .populate("senderId", USER_DATA);
-//     const connectedUsers = connectionReq.map((conn) =>
-//       conn.senderId._id.toString() === loggedUser._id.toString()
-//         ? conn.recieverId
-//         : conn.senderId
-//     );
-//     console.log(connectedUsers);
-//     res.status(200).json({ message: "fetched", connectedUsers });
-//   } catch (error) {
-//     res.status(400).json({ message: `error : ${error.message}` });
-//   }
-// });
-
 userRouter.get("/connection", authMiddleware, async (req, res) => {
   try {
     const loggedUser = req.user;

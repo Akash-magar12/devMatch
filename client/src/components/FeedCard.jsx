@@ -7,7 +7,6 @@ import API_URL from "../utils/const";
 
 const FeedCard = ({ feedUser }) => {
   const dispatch = useDispatch(); // Re-enable in your actual project
-
   const handleConnection = async (id, status) => {
     try {
       const res = await axios.post(

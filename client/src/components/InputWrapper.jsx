@@ -1,5 +1,3 @@
-import React from "react";
-
 const InputWrapper = ({ children, Icon, label }) => {
   return (
     <div className="relative w-full">

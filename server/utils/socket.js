@@ -1,57 +1,74 @@
 const socket = require("socket.io");
 const crypto = require("crypto");
 const chatModel = require("../models/chatModel");
+const userModel = require("../models/userModel"); // Make sure this is correct!
+
+// Create a unique room ID for two users
 const getSecretId = (userId, targetUserId) => {
   return crypto
     .createHash("sha256")
     .update([userId, targetUserId].sort().join("_"))
     .digest("hex");
 };
+
 const initializeSocket = (server) => {
   const io = socket(server, {
     cors: {
-      origin: "http://localhost:5173",
+      origin: "http://localhost:5173", // Update for your frontend origin
       methods: ["GET", "POST"],
       credentials: true,
     },
   });
+
   io.on("connection", (socket) => {
-    socket.on("joinChat", ({ userId, targetUserId, userName }) => {
+    console.log("✅ User connected");
+
+    socket.on("joinChat", async ({ userId, targetUserId }) => {
       const roomId = getSecretId(userId, targetUserId);
       socket.join(roomId);
-      console.log(userName + " joined room " + roomId);
-    });
-    socket.on(
-      "sendMessage",
-      async ({ userName, userId, targetUserId, newMessage }) => {
-        try {
-          const roomId = getSecretId(userId, targetUserId);
-          console.log(userName + newMessage);
-          io.to(roomId).emit("messageRecieved", { userName, newMessage });
-          let chat = await chatModel.findOne({
-            participants: { $all: [userId, targetUserId] },
-          });
 
-          if (!chat) {
-            chat = new chatModel({
-              participants: [userId, targetUserId],
-              messages: [],
-            });
-          }
-
-          chat.messages.push({
-            senderId: userId,
-            text: newMessage,
-          });
-          await chat.save();
-        } catch (error) {
-          console.log(error);
-        }
+      // Send target user info to client
+      try {
+        const targetUser = await userModel.findById(targetUserId).select("name");
+        socket.emit("targetUserInfo", {
+          name: targetUser?.name || "Unknown",
+        });
+      } catch (err) {
+        console.log("❌ Error fetching target user:", err);
       }
-    );
-    socket.on("disconnect", () => {});
+    });
+
+    socket.on("sendMessage", async ({ userName, userId, targetUserId, newMessage }) => {
+      const roomId = getSecretId(userId, targetUserId);
+      io.to(roomId).emit("messageRecieved", { userName, newMessage });
+
+      try {
+        let chat = await chatModel.findOne({
+          participants: { $all: [userId, targetUserId] },
+        });
+
+        if (!chat) {
+          chat = new chatModel({
+            participants: [userId, targetUserId],
+            messages: [],
+          });
+        }
+
+        chat.messages.push({
+          senderId: userId,
+          text: newMessage,
+        });
+
+        await chat.save();
+      } catch (err) {
+        console.log("❌ Error saving message:", err);
+      }
+    });
+
+    socket.on("disconnect", () => {
+      console.log("❎ User disconnected");
+    });
   });
-  7;
 };
 
 module.exports = initializeSocket;

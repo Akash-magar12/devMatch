@@ -8,6 +8,7 @@ import { Send, MessageCircle, ArrowLeft } from "lucide-react";
 
 const Chat = () => {
   const { targetUserId } = useParams();
+
   const user = useSelector((store) => store.user);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
@@ -39,18 +40,35 @@ const Chat = () => {
       console.log(error);
     }
   };
-
   useEffect(() => {
     if (!userId) return;
+
+    // ✅ Create a fresh socket connection using your custom util
     const socket = createSocketConnection();
-    socket.emit("joinChat", { userId, userName: user.name, targetUserId });
+
+    // ✅ Tell the server this user wants to join a chat room
+    socket.emit("joinChat", {
+      userId, // Your ID
+      userName: user.name, // Your name
+      targetUserId, // The person you're chatting with
+    });
+
+    // ✅ Listen for the other user's info (name, etc.) from the server
+    socket.on("targetUserInfo", (data) => {
+      setTargetUser(data); // Immediately sets the name before any message is sent
+    });
+
+    // ✅ Listen for new messages from the server in real-time
     socket.on("messageRecieved", ({ userName, newMessage }) => {
+      // Append the new message to the message list
       setMessages((prev) => [...prev, { userName, text: newMessage }]);
     });
+
+    // ✅ Cleanup when the component unmounts (to avoid duplicate socket connections)
     return () => {
-      socket.disconnect();
+      socket.disconnect(); // Cleanly close the connection
     };
-  }, [userId, targetUserId]);
+  }, [userId, targetUserId]); // Runs again only if userId or targetUserId changes
 
   useEffect(() => {
     fetchMessage();

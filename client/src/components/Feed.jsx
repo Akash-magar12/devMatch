@@ -27,7 +27,7 @@ const Feed = () => {
   }, []);
 
   return (
-    <div className=" bg-gray-50 py-8">
+    <div className="  py-8">
       <div className="max-w-md mx-auto px-4">
         {feedUsers.length === 0 && (
           <div className="text-center py-12">
